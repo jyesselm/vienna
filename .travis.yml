@@ -3,10 +3,7 @@
 language: python
 
 python:
-  - "3.3"
-  - "2.7"
-  - "2.6"
-  - "pypy"
+  - "3.7"
 
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install:
@@ -28,7 +25,7 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - conda activate test-environment
   - conda install -c bioconda viennarna
-  - python -m pip install .
+  - pip install -r requirements.txt
 
 # command to run tests, e.g. python setup.py test
 script:
