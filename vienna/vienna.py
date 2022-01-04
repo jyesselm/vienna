@@ -5,14 +5,16 @@ from dataclasses import dataclass
 
 RNA_FOLD_EXISTS = False
 
+
 class ViennaException(Exception):
     pass
 
+
 @dataclass(frozen=True, order=True)
 class FoldResults(object):
-    dot_bracket : str
-    mfe : float
-    ens_defect : float
+    dot_bracket: str
+    mfe: float
+    ens_defect: float
 
 
 class InverseResults(object):
@@ -33,7 +35,7 @@ class InverseResults(object):
         return self.seq_scores.__iter__()
 
 
-def fold(seq : str) -> FoldResults:
+def fold(seq: str) -> FoldResults:
     global RNA_FOLD_EXISTS
     if not RNA_FOLD_EXISTS:
         if shutil.which('RNAfold') is None:
@@ -59,7 +61,7 @@ def fold(seq : str) -> FoldResults:
     return results
 
 
-def folded_structure(seq : str) -> str:
+def folded_structure(seq: str) -> str:
     r = fold(seq)
     return r.dot_bracket
 
