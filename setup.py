@@ -34,7 +34,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='vienna',
-    version='0.1.0',
+    version='0.2.0',
     description='a short python wrapper for vienna tools ',
     long_description=readme + '\n\n' + doclink + '\n\n' + history,
     author='Joe Yesselman',

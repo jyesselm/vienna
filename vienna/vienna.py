@@ -1,13 +1,18 @@
 import os
 import subprocess
+import shutil
+from dataclasses import dataclass
 
+RNA_FOLD_EXISTS = False
 
+class ViennaException(Exception):
+    pass
+
+@dataclass(frozen=True, order=True)
 class FoldResults(object):
-    def __init__(self, struct, energy, ensemble_prob, ensemble_diversity):
-        self.dot_bracket = struct
-        self.mfe = energy
-        self.ens_prob = ensemble_prob
-        self.ensemble_diversity = ensemble_diversity
+    dot_bracket : str
+    mfe : float
+    ens_defect : float
 
 
 class InverseResults(object):
@@ -28,7 +33,14 @@ class InverseResults(object):
         return self.seq_scores.__iter__()
 
 
-def fold(seq):
+def fold(seq : str) -> FoldResults:
+    global RNA_FOLD_EXISTS
+    if not RNA_FOLD_EXISTS:
+        if shutil.which('RNAfold') is None:
+            raise ViennaException("RNAfold is not in the path!")
+        else:
+            RNA_FOLD_EXISTS = True
+
     if len(seq) == 0:
         raise ValueError("must supply a sequence longer then 0")
     output = subprocess.check_output(
@@ -38,43 +50,47 @@ def fold(seq):
     lines = output.decode("utf-8").split("\n")
     spl1 = lines[1].split()
     spl2 = lines[-2].split()
-    ensemble_prob = float(spl2[6][:-1])
     ensemble_diversity = float(spl2[-1])
     structure = spl1[0]
     energy = float(lines[1].split("(")[-1][:-1])
-    results = FoldResults(structure, energy, ensemble_prob, ensemble_diversity)
+    results = FoldResults(structure, energy, ensemble_diversity)
     os.remove("rna.ps")
     os.remove("dot.ps")
     return results
 
 
-def folded_structure(seq):
+def folded_structure(seq : str) -> str:
     r = fold(seq)
-    return str(r.dot_bracket)
+    return r.dot_bracket
 
 
 def cofold(seq):
+    global RNA_FOLD_EXISTS
+    if not RNA_FOLD_EXISTS:
+        if shutil.which('RNAfold') is None:
+            raise ViennaException("RNAfold is not in the path!")
+        else:
+            RNA_FOLD_EXISTS = True
+
     if len(seq) == 0:
         raise ValueError("must supply a sequence longer then 0")
     os.system(
-            'echo "' + seq + '" | ' + self.bin_path + "RNAcofold -p > rnafold_dump"
+            'echo "' + seq + '" | ' + "RNAcofold -p > rnafold_dump"
     )
     f = open("rnafold_dump")
     lines = f.readlines()
     f.close()
-    # print lines
     try:
         last_line = lines.pop()
     except:
         return None
     spl = last_line.split()
     ensemble_prob = float(spl[6][:-1])
-    ensemble_diversity = float(spl[-1].split("=")[-1])
     spl = lines[1].split()
     spl2 = lines[1].split("(")
     structure = spl[0]
     energy = float(spl2[-1][:-2].rstrip())
-    results = FoldResults(structure, energy, ensemble_prob, ensemble_diversity)
+    results = FoldResults(structure, energy, ensemble_prob)
     os.remove("rnafold_dump")
     os.remove("rna.ps")
     os.remove("dot.ps")
@@ -82,6 +98,13 @@ def cofold(seq):
 
 
 def inverse(ss, constraint, n_sol=100, discard_misfolds=True):
+    global RNA_FOLD_EXISTS
+    if not RNA_FOLD_EXISTS:
+        if shutil.which('RNAfold') is None:
+            raise ViennaException("RNAfold is not in the path!")
+        else:
+            RNA_FOLD_EXISTS = True
+
     f = open("seqsecstruct.txt", "w")
     f.writelines([ss + "\n", constraint])
     f.close()
