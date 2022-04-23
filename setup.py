@@ -26,8 +26,6 @@ if sys.argv[-1] == 'publish':
 
 readme = open('README.md').read()
 doclink = """
-Documentation
--------------
 """
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
@@ -38,7 +36,8 @@ setup(
         name='vienna',
         version='0.2.0',
         description='a short python wrapper for vienna tools ',
-        long_description=readme + '\n\n' + doclink + '\n\n' + history,
+        long_description=readme + '\n\n' + doclink + '\n\n',
+        long_description_content_type='text/markdown',
         author='Joe Yesselman',
         author_email='jyesselm@unl.edu',
         url='https://github.com/jyesselm/vienna',

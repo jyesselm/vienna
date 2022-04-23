@@ -2,6 +2,7 @@ import os
 import subprocess
 import shutil
 from dataclasses import dataclass
+from typing import List, Optional
 
 RNA_FOLD_EXISTS = False
 
@@ -15,6 +16,7 @@ class FoldResults(object):
     dot_bracket: str
     mfe: float
     ens_defect: float
+    bp_probs : List[List[float]]
 
 
 class InverseResults(object):
@@ -35,7 +37,7 @@ class InverseResults(object):
         return self.seq_scores.__iter__()
 
 
-def fold(seq: str) -> FoldResults:
+def fold(seq: str, bp_probs=False) -> FoldResults:
     global RNA_FOLD_EXISTS
     if not RNA_FOLD_EXISTS:
         if shutil.which('RNAfold') is None:
@@ -55,9 +57,25 @@ def fold(seq: str) -> FoldResults:
     ensemble_diversity = float(spl2[-1])
     structure = spl1[0]
     energy = float(lines[1].split("(")[-1][:-1])
-    results = FoldResults(structure, energy, ensemble_diversity)
-    os.remove("rna.ps")
-    os.remove("dot.ps")
+    bp_probs_list =[]
+    if bp_probs:
+        f = open("dot.ps")
+        lines = f.readlines()
+        f.close()
+        for l in lines:
+            spl = l.split()
+            if len(spl) != 4:
+                continue
+            if spl[3] != 'ubox':
+                continue
+            bp_probs_list.append([int(spl[0]), int(spl[1]), float(spl[2])])
+
+    results = FoldResults(structure, energy, ensemble_diversity, bp_probs_list)
+    try:
+        os.remove("rna.ps")
+        os.remove("dot.ps")
+    except:
+        pass
     return results
 
 
@@ -93,9 +111,12 @@ def cofold(seq):
     structure = spl[0]
     energy = float(spl2[-1][:-2].rstrip())
     results = FoldResults(structure, energy, ensemble_prob)
-    os.remove("rnafold_dump")
-    os.remove("rna.ps")
-    os.remove("dot.ps")
+    try:
+        os.remove("rnafold_dump")
+        os.remove("rna.ps")
+        os.remove("dot.ps")
+    except:
+        pass
     return results
 
 
