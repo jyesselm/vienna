@@ -16,7 +16,7 @@ class FoldResults(object):
     dot_bracket: str
     mfe: float
     ens_defect: float
-    bp_probs : List[List[float]]
+    bp_probs: List[List[float]]
 
 
 class InverseResults(object):
@@ -40,7 +40,7 @@ class InverseResults(object):
 def fold(seq: str, bp_probs=False) -> FoldResults:
     global RNA_FOLD_EXISTS
     if not RNA_FOLD_EXISTS:
-        if shutil.which('RNAfold') is None:
+        if shutil.which("RNAfold") is None:
             raise ViennaException("RNAfold is not in the path!")
         else:
             RNA_FOLD_EXISTS = True
@@ -48,8 +48,8 @@ def fold(seq: str, bp_probs=False) -> FoldResults:
     if len(seq) == 0:
         raise ValueError("must supply a sequence longer then 0")
     output = subprocess.check_output(
-            'echo "' + str(seq) + '" | ' + "RNAfold -p --noLP -d2",
-            shell=True,
+        'echo "' + str(seq) + '" | ' + "RNAfold -p --noLP --noPS --noDP -d2",
+        shell=True,
     )
     lines = output.decode("utf-8").split("\n")
     spl1 = lines[1].split()
@@ -57,7 +57,7 @@ def fold(seq: str, bp_probs=False) -> FoldResults:
     ensemble_diversity = float(spl2[-1])
     structure = spl1[0]
     energy = float(lines[1].split("(")[-1][:-1])
-    bp_probs_list =[]
+    bp_probs_list = []
     if bp_probs:
         f = open("dot.ps")
         lines = f.readlines()
@@ -66,7 +66,7 @@ def fold(seq: str, bp_probs=False) -> FoldResults:
             spl = l.split()
             if len(spl) != 4:
                 continue
-            if spl[3] != 'ubox':
+            if spl[3] != "ubox":
                 continue
             bp_probs_list.append([int(spl[0]), int(spl[1]), float(spl[2])])
 
@@ -87,16 +87,14 @@ def folded_structure(seq: str) -> str:
 def cofold(seq):
     global RNA_FOLD_EXISTS
     if not RNA_FOLD_EXISTS:
-        if shutil.which('RNAfold') is None:
+        if shutil.which("RNAfold") is None:
             raise ViennaException("RNAfold is not in the path!")
         else:
             RNA_FOLD_EXISTS = True
 
     if len(seq) == 0:
         raise ValueError("must supply a sequence longer then 0")
-    os.system(
-            'echo "' + seq + '" | ' + "RNAcofold -p > rnafold_dump"
-    )
+    os.system('echo "' + seq + '" | ' + "RNAcofold -p > rnafold_dump")
     f = open("rnafold_dump")
     lines = f.readlines()
     f.close()
@@ -123,7 +121,7 @@ def cofold(seq):
 def inverse(ss, constraint, n_sol=100, discard_misfolds=True):
     global RNA_FOLD_EXISTS
     if not RNA_FOLD_EXISTS:
-        if shutil.which('RNAfold') is None:
+        if shutil.which("RNAfold") is None:
             raise ViennaException("RNAfold is not in the path!")
         else:
             RNA_FOLD_EXISTS = True
@@ -134,14 +132,14 @@ def inverse(ss, constraint, n_sol=100, discard_misfolds=True):
 
     try:
         output = subprocess.check_output(
-                "RNAinverse -Fmp -f 0.5 -d2 -R{} < seqsecstruct.txt".format(n_sol),
-                shell=True,
+            "RNAinverse -Fmp -f 0.5 -d2 -R{} < seqsecstruct.txt".format(n_sol),
+            shell=True,
         )
     except subprocess.CalledProcessError as e:
         raise RuntimeError(
-                "command '{}' return with error (code {}): {}".format(
-                        e.cmd, e.returncode, e.output
-                )
+            "command '{}' return with error (code {}): {}".format(
+                e.cmd, e.returncode, e.output
+            )
         )
     lines = output.decode("utf-8").split("\n")
     seqs = []
