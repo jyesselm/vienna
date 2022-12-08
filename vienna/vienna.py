@@ -47,10 +47,16 @@ def fold(seq: str, bp_probs=False) -> FoldResults:
 
     if len(seq) == 0:
         raise ValueError("must supply a sequence longer then 0")
-    output = subprocess.check_output(
-        'echo "' + str(seq) + '" | ' + "RNAfold -p --noLP --noPS --noDP -d2",
-        shell=True,
-    )
+    if bp_probs:
+        output = subprocess.check_output(
+            'echo "' + str(seq) + '" | ' + "RNAfold -p --noLP --noPS -d2",
+            shell=True,
+        )
+    else:
+        output = subprocess.check_output(
+            'echo "' + str(seq) + '" | ' + "RNAfold -p --noLP --noDP --noPS -d2",
+            shell=True,
+        )
     lines = output.decode("utf-8").split("\n")
     spl1 = lines[1].split()
     spl2 = lines[-2].split()
