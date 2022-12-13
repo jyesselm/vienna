@@ -1,65 +1,50 @@
-#!/usr/bin/env python
+"""
+Setup script for installing vienna module
+"""
+
+# !/usr/bin/env python
 
 import os
 import sys
-import shutil
-
-
-def does_program_exist(prog_name):
-    if shutil.which(prog_name) is None:
-        return False
-    else:
-        return True
-
 
 try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
 
-if not does_program_exist("RNAfold"):
-    raise ValueError("cannot install without rnafold being present")
-
-if sys.argv[-1] == 'publish':
-    os.system('python setup.py sdist upload')
+if sys.argv[-1] == "publish":
+    os.system("python setup.py sdist upload")
     sys.exit()
 
-readme = open('README.md').read()
-doclink = """
-"""
-history = open('HISTORY.rst').read().replace('.. :changelog:', '')
+with open("README.md", "r", encoding="UTF-8") as f:
+    readme = f.read()
 
-with open('requirements.txt') as f:
+with open("requirements.txt", "r", encoding="UTF-8") as f:
     requirements = f.read().splitlines()
 
 setup(
-        name='vienna',
-        version='0.2.0',
-        description='a short python wrapper for vienna tools ',
-        long_description=readme + '\n\n' + doclink + '\n\n',
-        long_description_content_type='text/markdown',
-        author='Joe Yesselman',
-        author_email='jyesselm@unl.edu',
-        url='https://github.com/jyesselm/vienna',
-        packages=[
-            'vienna',
-        ],
-        package_dir={'vienna': 'vienna'},
-        py_modules=[
-            'vienna/vienna'
-        ],
-        include_package_data=True,
-        install_requires=requirements,
-        zip_safe=False,
-        keywords='vienna',
-        classifiers=[
-            'Intended Audience :: Developers',
-            'Natural Language :: English',
-            'Programming Language :: Python :: 3',
-            'Programming Language :: Python :: Implementation :: PyPy',
-        ],
-        entry_points={
-            'console_scripts': [
-            ]
-        }
+    name="vienna",
+    version="0.3.0",
+    description="a short python wrapper for vienna tools ",
+    long_description=readme + "\n\n",
+    long_description_content_type="text/markdown",
+    author="Joe Yesselman",
+    author_email="jyesselm@unl.edu",
+    url="https://github.com/jyesselm/vienna",
+    packages=[
+        "vienna",
+    ],
+    package_dir={"vienna": "vienna"},
+    py_modules=["vienna/vienna"],
+    include_package_data=True,
+    install_requires=requirements,
+    zip_safe=False,
+    keywords="vienna",
+    classifiers=[
+        "Intended Audience :: Developers",
+        "Natural Language :: English",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: Implementation :: PyPy",
+    ],
+    entry_points={"console_scripts": []},
 )

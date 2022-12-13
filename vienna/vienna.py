@@ -1,29 +1,60 @@
+"""
+A simple wrapper for RNAfold. Allows folding of RNA sequences to get
+secondary structure and energy.
+"""
+
 import os
 import subprocess
 import shutil
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 
-RNA_FOLD_EXISTS = False
+
+# classes #####################################################################
+
+
+@dataclass(order=True)
+class Globals:
+    """
+    Global variables for module
+    """
+
+    rna_fold_exists: bool = False
+    rna_cofold_exists: bool = False
+    rna_inverse_exists: bool = False
 
 
 class ViennaException(Exception):
-    pass
+    """
+    Exception for Vienna module.
+    """
 
 
 @dataclass(frozen=True, order=True)
-class FoldResults(object):
+class FoldResults:
+    """
+    Results from calling RNAfold.
+    """
+
     dot_bracket: str
     mfe: float
     ens_defect: float
     bp_probs: List[List[float]]
 
 
-class InverseResults(object):
-    class SeqScore(object):
-        def __init__(self, seq, score):
-            self.seq = seq
-            self.score = score
+class InverseResults:
+    """
+    Results from calling RNAinverse.
+    """
+
+    @dataclass(frozen=True, order=True)
+    class SeqScore:
+        """
+        Results from one sequence in the inverse folding.
+        """
+
+        seq: str
+        score: float
 
     def __init__(self, seqs, scores):
         self.seq_scores = []
@@ -37,14 +68,40 @@ class InverseResults(object):
         return self.seq_scores.__iter__()
 
 
+# module vars ##################################################################
+
+globs = Globals()
+
+
+# private functions ############################################################
+def _get_fold_results(lines):
+    """
+    Get results from RNAfold output.
+    :param lines: lines from RNAfold output
+    :return: ens_defect, structure, energy
+    """
+    spl1 = lines[1].split()
+    spl2 = lines[-2].split()
+    ensemble_diversity = float(spl2[-1])
+    structure = spl1[0]
+    energy = float(lines[1].split("(")[-1][:-1])
+    return ensemble_diversity, structure, energy
+
+
+# functions ####################################################################
+
+
 def fold(seq: str, bp_probs=False) -> FoldResults:
-    global RNA_FOLD_EXISTS
-    if not RNA_FOLD_EXISTS:
+    """
+    Fold a sequence using RNAfold.
+    :param seq: sequence to fold.
+    :param bp_probs: generate base pair probabilities?
+    :return: Results from RNAfold [FoldResults] object
+    """
+    if not globs.rna_fold_exists:
         if shutil.which("RNAfold") is None:
             raise ViennaException("RNAfold is not in the path!")
-        else:
-            RNA_FOLD_EXISTS = True
-
+        globs.rna_fold_exists = True
     if len(seq) == 0:
         raise ValueError("must supply a sequence longer then 0")
     if bp_probs:
@@ -58,103 +115,88 @@ def fold(seq: str, bp_probs=False) -> FoldResults:
             shell=True,
         )
     lines = output.decode("utf-8").split("\n")
-    spl1 = lines[1].split()
-    spl2 = lines[-2].split()
-    ensemble_diversity = float(spl2[-1])
-    structure = spl1[0]
-    energy = float(lines[1].split("(")[-1][:-1])
+    ens_defect, structure, energy = _get_fold_results(lines)
     bp_probs_list = []
     if bp_probs:
-        f = open("dot.ps")
-        lines = f.readlines()
-        f.close()
-        for l in lines:
-            spl = l.split()
+        with open("dot.ps", "r", encoding="UTF-8") as fhandler:
+            lines = fhandler.readlines()
+        for line in lines:
+            spl = line.split()
             if len(spl) != 4:
                 continue
             if spl[3] != "ubox":
                 continue
             bp_probs_list.append([int(spl[0]), int(spl[1]), float(spl[2])])
-
-    results = FoldResults(structure, energy, ensemble_diversity, bp_probs_list)
-    try:
-        os.remove("rna.ps")
-        os.remove("dot.ps")
-    except:
-        pass
-    return results
+        try:
+            os.remove("dot.ps")
+        except FileNotFoundError:
+            pass
+    return FoldResults(structure, energy, ens_defect, bp_probs_list)
 
 
 def folded_structure(seq: str) -> str:
-    r = fold(seq)
-    return r.dot_bracket
+    """
+    Fold a sequence using RNAfold and return the structure.
+    :param seq: sequence to fold
+    :return: structure in dot-bracket notation
+    """
+    return fold(seq).dot_bracket
 
 
-def cofold(seq):
-    global RNA_FOLD_EXISTS
-    if not RNA_FOLD_EXISTS:
-        if shutil.which("RNAfold") is None:
-            raise ViennaException("RNAfold is not in the path!")
-        else:
-            RNA_FOLD_EXISTS = True
-
+def cofold(seq: str) -> FoldResults:
+    """
+    fold sequences using RNAcofold.
+    :param seq: sequences to fold seperated by a '&'
+    :return: Results from RNAfold [FoldResults] object
+    """
+    if not globs.rna_cofold_exists:
+        if shutil.which("RNAcofold") is None:
+            raise ViennaException("RNAcofold is not in the path!")
+        globs.rna_cofold_exists = True
     if len(seq) == 0:
         raise ValueError("must supply a sequence longer then 0")
-    os.system('echo "' + seq + '" | ' + "RNAcofold -p > rnafold_dump")
-    f = open("rnafold_dump")
-    lines = f.readlines()
-    f.close()
-    try:
-        last_line = lines.pop()
-    except:
-        return None
-    spl = last_line.split()
-    ensemble_prob = float(spl[6][:-1])
-    spl = lines[1].split()
-    spl2 = lines[1].split("(")
-    structure = spl[0]
-    energy = float(spl2[-1][:-2].rstrip())
-    results = FoldResults(structure, energy, ensemble_prob)
-    try:
-        os.remove("rnafold_dump")
-        os.remove("rna.ps")
-        os.remove("dot.ps")
-    except:
-        pass
-    return results
+    output = subprocess.check_output(
+        'echo "' + str(seq) + '" | ' + "RNAcofold -p --noLP --noPS -d2",
+        shell=True,
+    )
+    lines = output.decode("utf-8").split("\n")
+    ens_defect, structure, energy = _get_fold_results(lines)
+    return FoldResults(structure, energy, ens_defect, [])
 
 
-def inverse(ss, constraint, n_sol=100, discard_misfolds=True):
-    global RNA_FOLD_EXISTS
-    if not RNA_FOLD_EXISTS:
-        if shutil.which("RNAfold") is None:
-            raise ViennaException("RNAfold is not in the path!")
-        else:
-            RNA_FOLD_EXISTS = True
-
-    f = open("seqsecstruct.txt", "w")
-    f.writelines([ss + "\n", constraint])
-    f.close()
-
-    try:
-        output = subprocess.check_output(
-            "RNAinverse -Fmp -f 0.5 -d2 -R{} < seqsecstruct.txt".format(n_sol),
-            shell=True,
-        )
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(
-            "command '{}' return with error (code {}): {}".format(
-                e.cmd, e.returncode, e.output
-            )
-        )
+def inverse_fold(secstruct, constraint, n_sol=100) -> InverseResults:
+    """
+    Generates sequences that match a secondary structure with sequence constraint
+    For example:
+    secstruct:  (((.(((....))).)))
+    constraint: NNNgNNNNNNNNNNaNNN
+    :param secstruct: secondary structure in dot bracket notation
+    :param constraint: sequence constraints
+    :param n_sol: number of solutions to return
+    :return: InverseResults object
+    """
+    if not globs.rna_inverse_exists:
+        if shutil.which("RNAinverse") is None:
+            raise ViennaException("RNAinverse is not in the path!")
+        globs.rna_inverse_exists = True
+    with open("inverse.in", "w", encoding="utf-8") as fhandler:
+        fhandler.write(secstruct + "\n" + constraint + "\n")
+    output = subprocess.check_output(
+        f"RNAinverse -Fmp -f 0.5 -d2 -R{n_sol} < inverse.in",
+        shell=True,
+    )
     lines = output.decode("utf-8").split("\n")
     seqs = []
     scores = []
-    for e in lines:
-        print(e)
-        spl = e.split()
+    for line in lines:
+        spl = line.split()
         if len(spl) != 2:
             continue
         seqs.append(spl[0])
         scores.append(int(spl[1]))
+    try:
+        os.remove("inverse.in")
+        os.remove("dot.ps")
+    except FileNotFoundError:
+        pass  # ignore
     return InverseResults(seqs, scores)

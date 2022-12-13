@@ -1,13 +1,18 @@
 # vienna
+
 [![PYPI package](https://badge.fury.io/py/vienna.png)](http://badge.fury.io/py/vienna)
 [![Build status](https://travis-ci.org/jyesselm/vienna.png?branch=main)](https://travis-ci.org/jyesselm/vienna)
-[![Build status](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/PyCQA/pylint)
+[![formatting: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-a short python wrapper for vienna tools (https://www.tbi.univie.ac.at/RNA/ViennaRNA/doc/html/install.html) Note I did not develop this software just built this short wrapper.
+a short python wrapper for vienna
+tools (https://www.tbi.univie.ac.at/RNA/ViennaRNA/doc/html/install.html) Note I did not develop this
+software just built this short wrapper.
 
 ## how to install
 
 ### install anaconda
+
 highly recommended to install anaconda first and create a py3 environment
 
 ```shell
@@ -23,6 +28,7 @@ conda activate py3
 # https://docs.anaconda.com/anaconda/install/mac-os/
 bash ~/Downloads/Anaconda3-2020.02-MacOSX-x86_64.sh
 ```
+
 ### install vienna
 
 Note this is just a wrapper so you must install the vienna fold code
@@ -48,7 +54,7 @@ cd vienna
 python setup.py install 
 ```
 
-## how to use 
+## how to use
 
 ```shell
 >>> import vienna 
