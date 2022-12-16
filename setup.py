@@ -24,7 +24,7 @@ with open("requirements.txt", "r", encoding="UTF-8") as f:
 
 setup(
     name="vienna",
-    version="0.3.0",
+    version="0.5.0",
     description="a short python wrapper for vienna tools ",
     long_description=readme + "\n\n",
     long_description_content_type="text/markdown",

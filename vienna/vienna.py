@@ -143,6 +143,16 @@ def folded_structure(seq: str) -> str:
     return fold(seq).dot_bracket
 
 
+def does_sequence_fold_to(seq: str, struct: str) -> bool:
+    """
+    Check if a sequence folds to a given structure.
+    :param seq: sequence to check
+    :param struct: structure to check
+    :return: True if sequence folds to structure, False otherwise
+    """
+    return folded_structure(seq) == struct
+
+
 def cofold(seq: str) -> FoldResults:
     """
     fold sequences using RNAcofold.
