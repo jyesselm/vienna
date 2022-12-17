@@ -111,10 +111,7 @@ def fold(seq: str, bp_probs=False) -> FoldResults:
         )
     else:
         output = subprocess.check_output(
-            'echo "'
-            + str(seq)
-            + '" | '
-            + "RNAfold -p --noLP --noDP --noPS -d2",
+            'echo "' + str(seq) + '" | ' + "RNAfold -p --noLP --noDP --noPS -d2",
             shell=True,
         )
     lines = output.decode("utf-8").split("\n")
