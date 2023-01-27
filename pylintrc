@@ -1,2 +1,5 @@
 [BASIC]
-good-names=i, j, k, r, m, n, g, f, s, df, bp, ss, gu
+good-names=a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, tm, df, bp, ss, gu, ec, mw, rc
+
+[LOGGING]
+logging-format-style=fstr
