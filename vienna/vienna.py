@@ -22,6 +22,7 @@ class Globals:
     rna_fold_exists: bool = False
     rna_cofold_exists: bool = False
     rna_inverse_exists: bool = False
+    version : str = ""
 
 
 class ViennaException(Exception):
@@ -102,9 +103,14 @@ def fold(seq: str, bp_probs=False) -> FoldResults:
         if shutil.which("RNAfold") is None:
             raise ViennaException("RNAfold is not in the path!")
         globs.rna_fold_exists = True
+    if globs.version == "":
+        output = subprocess.check_output("RNAfold --version", shell=True)
+        spl = output.decode("utf-8").split()
+        globs.version = spl[1]
     if len(seq) == 0:
         raise ValueError("must supply a sequence longer then 0")
-    if bp_probs:
+    ver_spl = globs.version.split(".")
+    if bp_probs or int(ver_spl[1]) < 5:
         output = subprocess.check_output(
             'echo "' + str(seq) + '" | ' + "RNAfold -p --noLP --noPS -d2",
             shell=True,
