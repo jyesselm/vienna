@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         
     steps:
       - name: checkout repository
@@ -27,9 +27,9 @@ jobs:
       
       - name: check solution
         run: |
-          mamba env export
+          conda install viennarna
       
       - name: test samtools
         run: |
-          which samtools
-          samtools help
+          pip install .
+          pytest
