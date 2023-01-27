@@ -1,34 +1,33 @@
-name: so-samtools
+name: install with conda
 on: [push]
 
 jobs:
   create-env:
-    name: ${{ matrix.os }} 
+    name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash -l {0}
-        
+
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        
+
     steps:
       - name: checkout repository
         uses: actions/checkout@v2
-        
-      - name: create environment with mamba
+
+      - name: create conda env
         uses: conda-incubator/setup-miniconda@v2
         with:
-          mamba-version: "*"
           channels: conda-forge,bioconda,defaults
           auto-activate-base: true
-      
+
       - name: check solution
         run: |
           conda install viennarna
-      
+
       - name: test samtools
         run: |
           pip install .
