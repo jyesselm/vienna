@@ -23,9 +23,7 @@ jobs:
         with:
           mamba-version: "*"
           channels: conda-forge,bioconda,defaults
-          auto-activate-base: false
-          activate-environment: so-samtools
-          environment-file: envs/so-samtools.yaml
+          auto-activate-base: true
       
       - name: check solution
         run: |
