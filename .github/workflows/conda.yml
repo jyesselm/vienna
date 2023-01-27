@@ -24,11 +24,11 @@ jobs:
           channels: conda-forge,bioconda,defaults
           auto-activate-base: true
 
-      - name: check solution
+      - name: install vienna rna
         run: |
           conda install viennarna
 
-      - name: test samtools
+      - name: install vienna package and run pytest
         run: |
           pip install .
           pytest
