@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 
 jobs:
-  lint:
+  create-env:
     runs-on: ubuntu-latest
     steps:
       - uses: conda-incubator/setup-miniconda@v2
