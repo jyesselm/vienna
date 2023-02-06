@@ -22,7 +22,7 @@ class Globals:
     rna_fold_exists: bool = False
     rna_cofold_exists: bool = False
     rna_inverse_exists: bool = False
-    version : str = ""
+    version: str = ""
 
 
 class ViennaException(Exception):
