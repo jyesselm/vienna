@@ -12,6 +12,13 @@ def test_fold():
     assert r.dot_bracket == "((((....))))"
 
 
+def test_fold_longer():
+    """
+    Test the fold function
+    """
+    r = fold("GGGGAAAACCCC" * 20)
+    assert r.mfe < -190
+
 def test_fold_bp_prob():
     """
     Test the bp_probs in the fold function
@@ -34,6 +41,11 @@ def test_cofold():
     """
     r = cofold("GGGG&AAACCCC")
     assert r.dot_bracket == "((((&...))))"
+
+
+def test_cofold_longer():
+    seq = "G" * 20 + "&" + "C" * 20
+    r = cofold(seq)
 
 
 def test_inverse_fold():

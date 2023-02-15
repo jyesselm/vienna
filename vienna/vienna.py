@@ -3,6 +3,7 @@ A simple wrapper for RNAfold. Allows folding of RNA sequences to get
 secondary structure and energy.
 """
 
+import re
 import os
 import subprocess
 import shutil
@@ -83,7 +84,10 @@ def _get_fold_results(lines):
     """
     spl1 = lines[1].split()
     spl2 = lines[-2].split()
-    ensemble_diversity = float(spl2[-1])
+    try:
+        ensemble_diversity = float(spl2[-1])
+    except:
+        ensemble_diversity = 999
     structure = spl1[0]
     energy = float(lines[1].split("(")[-1][:-1])
     return ensemble_diversity, structure, energy
