@@ -1,4 +1,5 @@
-name: install with conda
+name: Install with Conda
+
 on: [push]
 
 jobs:
@@ -15,20 +16,31 @@ jobs:
         os: [ubuntu-latest, macos-latest]
 
     steps:
-      - name: checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: create conda env
+      - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
+          miniconda-version: "latest"  # Ensure Miniconda is installed
           channels: conda-forge,bioconda,defaults
           auto-activate-base: true
 
-      - name: install vienna rna
+      - name: Create and activate environment
         run: |
-          conda install viennarna
+          conda create -n myenv python=3.9 -y
+          conda activate myenv
 
-      - name: install vienna package and run pytest
+      - name: Install ViennaRNA
         run: |
+          conda install -n myenv -c conda-forge -c bioconda viennarna -y
+
+      - name: Install Vienna package
+        run: |
+          conda activate myenv
           pip install .
+
+      - name: Run tests
+        run: |
+          conda activate myenv
           pytest
