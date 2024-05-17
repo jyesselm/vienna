@@ -13,6 +13,7 @@ from typing import List
 
 # classes #####################################################################
 
+
 # TODO add check for version if below a set version do not use -noDP flag or it will error out
 @dataclass(order=True)
 class Globals:
