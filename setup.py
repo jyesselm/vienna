@@ -1,23 +1,11 @@
 """
-Setup script for installing vienna module
+Setup script for installing the vienna module
 """
 
-# !/usr/bin/env python
-
-import os
-import sys
-
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
-
-if sys.argv[-1] == "publish":
-    os.system("python setup.py sdist upload")
-    sys.exit()
+from setuptools import setup, find_packages
 
 with open("README.md", "r", encoding="UTF-8") as f:
-    readme = f.read()
+    long_description = f.read()
 
 with open("requirements.txt", "r", encoding="UTF-8") as f:
     requirements = f.read().splitlines()
@@ -25,26 +13,34 @@ with open("requirements.txt", "r", encoding="UTF-8") as f:
 setup(
     name="vienna",
     version="0.7.0",
-    description="a short python wrapper for vienna tools ",
-    long_description=readme + "\n\n",
+    description="A short Python wrapper for Vienna tools",
+    long_description=long_description,
     long_description_content_type="text/markdown",
     author="Joe Yesselman",
     author_email="jyesselm@unl.edu",
     url="https://github.com/jyesselm/vienna",
-    packages=[
-        "vienna",
-    ],
-    package_dir={"vienna": "vienna"},
-    py_modules=["vienna/vienna"],
+    packages=find_packages(),
     include_package_data=True,
     install_requires=requirements,
-    zip_safe=False,
-    keywords="vienna",
+    python_requires=">=3.6",
     classifiers=[
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
-    entry_points={"console_scripts": []},
+    entry_points={
+        "console_scripts": [
+            # "vienna-cli=vienna.cli:main",  # Example entry point
+        ],
+    },
 )

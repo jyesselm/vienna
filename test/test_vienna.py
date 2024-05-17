@@ -1,6 +1,7 @@
 """
 Tests for `vienna` vienna.py module.
 """
+
 from vienna import fold, folded_structure, cofold, inverse_fold
 
 
@@ -18,6 +19,7 @@ def test_fold_longer():
     """
     r = fold("GGGGAAAACCCC" * 20)
     assert r.mfe < -190
+
 
 def test_fold_bp_prob():
     """

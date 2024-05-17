@@ -3,25 +3,18 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. include:: ../README.rst
-
 Contents:
 =========
 
+.. automodule:: vienna.vienna
+    :members:
 .. toctree::
    :maxdepth: 2
+   :caption: Contents:
 
-   installation
-   usage
-   contributing
-   authors
-   history
 
-Feedback
-========
-
-If you have any suggestions or questions about **vienna** feel free to email me
-at jyesselm@unl.edu.
-
-If you encounter any errors or problems with **vienna**, please let me know!
-Open an Issue at the GitHub http://github.com/jyesselm/vienna main repository.
+Indices and tables
+==================
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

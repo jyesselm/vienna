@@ -1,9 +1,9 @@
-.PHONY: help clean clean-pyc clean-build list test test-all coverage docs release sdist
+.PHONY: help clean clean-pyc clean-build lint test test-all coverage docs release sdist
 
 help:
 	@echo "clean-build - remove build artifacts"
 	@echo "clean-pyc - remove Python file artifacts"
-	@echo "lint - check style with flake8"
+	@echo "lint - check style with flake8 and format with black"
 	@echo "test - run tests quickly with the default Python"
 	@echo "test-all - run tests on every Python version with tox"
 	@echo "coverage - check code coverage quickly with the default Python"
@@ -24,19 +24,19 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 lint:
-	flake8 vienna test
+	black vienna test
 
 test:
-	py.test
+	pytest
 
 test-all:
 	tox
 
 coverage:
-	coverage run --source vienna setup.py test
+	coverage run --source vienna -m pytest
 	coverage report -m
 	coverage html
-	open htmlcov/index.html
+	open htmlcov/index.html || xdg-open htmlcov/index.html || start htmlcov/index.html
 
 docs:
 	rm -f docs/vienna.rst
@@ -44,7 +44,7 @@ docs:
 	sphinx-apidoc -o docs/ vienna
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
-	open docs/_build/html/index.html
+	open docs/_build/html/index.html || xdg-open docs/_build/html/index.html || start docs/_build/html/index.html
 
 release: clean
 	python setup.py sdist upload
