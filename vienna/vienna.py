@@ -3,26 +3,13 @@ A simple wrapper for RNAfold. Allows folding of RNA sequences to get
 secondary structure and energy.
 """
 
-import re
-import os
+import RNA
 import subprocess
 import shutil
 from dataclasses import dataclass
 from typing import List, Tuple
 
 # classes #####################################################################
-
-
-@dataclass(order=True)
-class Globals:
-    """
-    Global variables for module
-    """
-
-    rna_fold_exists: bool = False
-    rna_cofold_exists: bool = False
-    rna_inverse_exists: bool = False
-    version: str = ""
 
 
 class ViennaException(Exception):
@@ -69,31 +56,20 @@ class InverseResults:
         return iter(self.seq_scores)
 
 
-# module vars ##################################################################
-
-globs = Globals()
-
-
 # private functions ############################################################
-def _get_fold_results(lines: List[str]) -> Tuple[float, str, float]:
+def _get_model_details():
     """
-    Get results from RNAfold output.
-
-    Args:
-        lines (List[str]): lines from RNAfold output
+    Get model details matching the command-line options:
+    --noLP: no lonely pairs
+    -d2: dangles = 2
 
     Returns:
-        Tuple[float, str, float]: ensemble defect, structure, and energy
+        RNA.md: Model details object
     """
-    spl1 = lines[1].split()
-    spl2 = lines[-2].split()
-    try:
-        ensemble_diversity = float(spl2[-1])
-    except ValueError:
-        ensemble_diversity = 0.0
-    mfe = float(spl1[-1].strip("()"))
-    structure = spl1[0]
-    return ensemble_diversity, structure, mfe
+    md = RNA.md()
+    md.noLP = 1  # --noLP: no lonely pairs
+    md.dangles = 2  # -d2: dangles = 2
+    return md
 
 
 # public functions #############################################################
@@ -108,47 +84,44 @@ def fold(seq: str, bp_probs: bool = False) -> FoldResults:
     Returns:
         FoldResults: Results from RNAfold
     """
-    if not globs.rna_fold_exists:
-        if shutil.which("RNAfold") is None:
-            raise ViennaException("RNAfold is not in the path!")
-        globs.rna_fold_exists = True
-
-    if globs.version == "":
-        output = subprocess.check_output("RNAfold --version", shell=True)
-        spl = output.decode("utf-8").split()
-        globs.version = spl[1]
-
     if len(seq) == 0:
         raise ValueError("Must supply a sequence longer than 0")
 
-    ver_spl = globs.version.split(".")
-    cmd = (
-        f'echo "{seq}" | RNAfold -p --noLP --noPS -d2'
-        if bp_probs or int(ver_spl[1]) < 5
-        else f'echo "{seq}" | RNAfold -p --noLP --noDP --noPS -d2'
-    )
+    md = _get_model_details()
 
-    output = subprocess.check_output(cmd, shell=True)
-    lines = output.decode("utf-8").split("\n")
-    ens_defect, structure, energy = _get_fold_results(lines)
+    # Create fold compound with model details
+    fc = RNA.fold_compound(seq, md)
+
+    # Compute MFE structure and energy
+    structure, energy = fc.mfe()
+
+    # Calculate partition function for ensemble diversity and base pair probabilities
+    fc.pf()
+
+    # Calculate ensemble diversity (mean pairwise Hamming distance between structures)
+    # This is what RNAfold outputs as "ensemble diversity"
+    # Note: This is different from ensemble_defect, which is the distance from MFE structure
+    try:
+        ensemble_diversity = fc.mean_bp_distance()
+    except (AttributeError, TypeError):
+        # Fallback: use 0.0 if method not available
+        ensemble_diversity = 0.0
+
     bp_probs_list = []
-
     if bp_probs:
-        with open("dot.ps", "r", encoding="UTF-8") as fhandler:
-            lines = fhandler.readlines()
-        for line in lines:
-            spl = line.split()
-            if len(spl) != 4:
-                continue
-            if spl[3] != "ubox":
-                continue
-            bp_probs_list.append([int(spl[0]), int(spl[1]), float(spl[2])])
-        try:
-            os.remove("dot.ps")
-        except FileNotFoundError:
-            pass
+        # Get base pair probability matrix
+        bpp_matrix = fc.bpp()
+        n = len(seq)
+        # bpp_matrix uses 0-based indexing: bpp[i][j] corresponds to positions i+1, j+1
+        for i in range(n):
+            for j in range(i + 1, n):
+                prob = bpp_matrix[i][j]
+                if prob > 0.0:
+                    bp_probs_list.append(
+                        [i + 1, j + 1, prob]
+                    )  # +1 for 1-indexed output
 
-    return FoldResults(structure, energy, ens_defect, bp_probs_list)
+    return FoldResults(structure, energy, ensemble_diversity, bp_probs_list)
 
 
 def cofold(seq: str) -> FoldResults:
@@ -161,20 +134,37 @@ def cofold(seq: str) -> FoldResults:
     Returns:
         FoldResults: Results from RNAcofold
     """
-    if not globs.rna_cofold_exists:
-        if shutil.which("RNAcofold") is None:
-            raise ViennaException("RNAcofold is not in the path!")
-        globs.rna_cofold_exists = True
-
     if len(seq) == 0:
         raise ValueError("Must supply a sequence longer than 0")
 
-    output = subprocess.check_output(
-        f'echo "{seq}" | RNAcofold -p --noLP --noPS -d2', shell=True
-    )
-    lines = output.decode("utf-8").split("\n")
-    ens_defect, structure, energy = _get_fold_results(lines)
-    return FoldResults(structure, energy, ens_defect, [])
+    if "&" not in seq:
+        raise ValueError("Cofold requires sequences separated by '&'")
+
+    seq1, seq2 = seq.split("&", 1)
+
+    md = _get_model_details()
+
+    # Create fold compound with the combined sequence (RNA.fold_compound handles "&" separator)
+    fc = RNA.fold_compound(seq, md)
+
+    # Compute MFE structure and energy
+    structure, energy = fc.mfe()
+
+    # Insert "&" separator in structure at position corresponding to seq1 length
+    # This matches command-line RNAcofold output format
+    structure = structure[: len(seq1)] + "&" + structure[len(seq1) :]
+
+    # Calculate partition function for ensemble diversity
+    # Note: This can be slow for long sequences, but we include it for consistency
+    fc.pf()
+
+    # Calculate ensemble diversity (mean pairwise Hamming distance between structures)
+    try:
+        ensemble_diversity = fc.mean_bp_distance()
+    except (AttributeError, TypeError):
+        ensemble_diversity = 0.0
+
+    return FoldResults(structure, energy, ensemble_diversity, [])
 
 
 def inverse_fold(secstruct: str, constraint: str, n_sol: int = 100) -> InverseResults:
@@ -189,32 +179,54 @@ def inverse_fold(secstruct: str, constraint: str, n_sol: int = 100) -> InverseRe
     Returns:
         InverseResults: Results from RNAinverse
     """
-    if not globs.rna_inverse_exists:
-        if shutil.which("RNAinverse") is None:
-            raise ViennaException("RNAinverse is not in the path!")
-        globs.rna_inverse_exists = True
+    # Check if RNAinverse is available
+    if shutil.which("RNAinverse") is None:
+        raise RuntimeError("RNAinverse command-line tool not available in PATH")
 
-    with open("inverse.in", "w", encoding="utf-8") as fhandler:
-        fhandler.write(f"{secstruct}\n{constraint}\n")
-
-    output = subprocess.check_output(
-        f"RNAinverse -Fmp -f 0.5 -d2 -R{n_sol} < inverse.in", shell=True
-    )
-    lines = output.decode("utf-8").split("\n")
+    md = _get_model_details()
     seqs = []
     scores = []
-    for line in lines:
-        spl = line.split()
-        if len(spl) != 2:
-            continue
-        seqs.append(spl[0])
-        scores.append(float(spl[1]))
 
+    # Call RNAinverse with -R option to get multiple solutions
+    # Format: structure on first line, constraint on second line
+    input_data = f"{secstruct}\n{constraint}\n"
     try:
-        os.remove("inverse.in")
-        os.remove("dot.ps")
-    except FileNotFoundError:
-        pass  # ignore
+        result = subprocess.run(
+            ["RNAinverse", f"-R{n_sol}"],
+            input=input_data,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        # Parse output: each line is "SEQUENCE    DISTANCE"
+        # Include all sequences returned (distance indicates how close they are to target)
+        lines = result.stdout.strip().split("\n")
+        for line in lines:
+            if not line.strip():
+                continue
+
+            # Split by whitespace - first part is sequence, second is distance (if present)
+            parts = line.strip().split()
+            if parts:
+                seq = parts[0]
+                if seq and seq not in seqs:  # Avoid duplicates
+                    seqs.append(seq)
+
+                    # Compute score by folding the sequence
+                    fc = RNA.fold_compound(seq, md)
+                    _, mfe = fc.mfe()
+                    scores.append(mfe)
+
+                    # Stop if we have enough solutions
+                    if len(seqs) >= n_sol:
+                        break
+
+    except subprocess.CalledProcessError as e:
+        # If RNAinverse fails, raise an error
+        raise RuntimeError(f"RNAinverse failed: {e.stderr}") from e
+    except Exception as e:
+        raise RuntimeError(f"Error running RNAinverse: {e}") from e
 
     return InverseResults(seqs, scores)
 
@@ -241,4 +253,5 @@ def does_sequence_fold_to(seq: str, target_structure: str) -> bool:
     Returns:
         bool: True if the sequence folds into the target structure, False otherwise
     """
-    return folded_structure(seq, target_structure)
+    actual_structure = folded_structure(seq)
+    return actual_structure == target_structure

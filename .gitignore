@@ -41,3 +41,8 @@ output/*/index.html
 
 # Sphinx
 docs/_build
+
+# ViennaRNA PostScript output files
+*.ps
+rna.ps
+dot.ps

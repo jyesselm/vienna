@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vienna"
+version = "0.7.0"
+description = "A short Python wrapper for Vienna tools"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Joe Yesselman", email = "jyesselm@unl.edu"}
+]
+keywords = ["RNA", "ViennaRNA", "bioinformatics", "folding"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+    "ViennaRNA>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "pytest",
+    "wheel>=0.22",
+]
+
+[project.urls]
+Homepage = "https://github.com/jyesselm/vienna"
+Repository = "https://github.com/jyesselm/vienna"
+Issues = "https://github.com/jyesselm/vienna/issues"
+
+[tool.setuptools]
+packages = ["vienna"]
+include-package-data = true
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311']
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.pylint.BASIC]
+good-names = "a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, tm, df, bp, ss, gu, ec, mw, rc"
+
+[tool.pylint.LOGGING]
+logging-format-style = "fstr"
+

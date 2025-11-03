@@ -1,0 +1,14 @@
+name: vienna
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python>=3.8
+  - viennarna>=2.0
+  - pip
+  - pip:
+    - black
+    - pytest
+    - wheel>=0.22
+
