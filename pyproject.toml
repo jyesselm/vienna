@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vienna"
-version = "0.7.0"
+version = "0.8.0"
 description = "A short Python wrapper for Vienna tools"
 readme = "README.md"
 requires-python = ">=3.8"
