@@ -29,12 +29,13 @@ classifiers = [
 ]
 dependencies = [
     "ViennaRNA>=2.0",
+    "black",
+    "pytest",
 ]
 
 [project.optional-dependencies]
 dev = [
     "black",
-    "pytest",
     "wheel>=0.22",
     "build",
     "twine",
