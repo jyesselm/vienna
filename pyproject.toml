@@ -36,6 +36,8 @@ dev = [
     "black",
     "pytest",
     "wheel>=0.22",
+    "build",
+    "twine",
 ]
 
 [project.urls]

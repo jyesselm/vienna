@@ -1,4 +1,4 @@
-.PHONY: help clean clean-pyc clean-build lint test test-all coverage docs release sdist
+.PHONY: help clean clean-pyc clean-build lint test test-all coverage docs release sdist install-dev
 
 help:
 	@echo "clean-build - remove build artifacts"
@@ -10,6 +10,10 @@ help:
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
 	@echo "release - package and upload a release"
 	@echo "sdist - package"
+	@echo "install-dev - install development dependencies"
+
+install-dev:
+	pip install -e ".[dev]"
 
 clean: clean-build clean-pyc
 
@@ -25,6 +29,7 @@ clean-pyc:
 
 lint:
 	black vienna test
+	flake8 vienna test --max-line-length=88 --extend-ignore=E203,W503
 
 test:
 	pytest
@@ -47,10 +52,11 @@ docs:
 	open docs/_build/html/index.html || xdg-open docs/_build/html/index.html || start docs/_build/html/index.html
 
 release: clean
-	python setup.py sdist upload
-	python setup.py bdist_wheel upload
+	pip install -q build twine
+	python -m build
+	twine upload dist/*
 
 sdist: clean
-	python setup.py sdist
-	python setup.py bdist_wheel upload
+	pip install -q build
+	python -m build
 	ls -l dist
