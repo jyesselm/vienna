@@ -3,11 +3,26 @@ A simple wrapper for RNAfold. Allows folding of RNA sequences to get
 secondary structure and energy.
 """
 
-import RNA
+import os
 import subprocess
 import shutil
+import tempfile
+import warnings
 from dataclasses import dataclass
 from typing import List, Tuple
+
+try:
+    import RNA
+
+    _HAS_RNA = True
+except ImportError as _rna_import_err:
+    RNA = None
+    _HAS_RNA = False
+    warnings.warn(
+        f"ViennaRNA Python bindings unavailable ({_rna_import_err}); "
+        "falling back to command-line RNAfold/RNAcofold/RNAinverse.",
+        stacklevel=2,
+    )
 
 # classes #####################################################################
 
@@ -72,6 +87,99 @@ def _get_model_details():
     return md
 
 
+def _require_cli(tool: str) -> None:
+    if shutil.which(tool) is None:
+        raise RuntimeError(
+            f"{tool} command-line tool not available in PATH and "
+            "ViennaRNA Python bindings failed to load."
+        )
+
+
+def _parse_ensemble_diversity(lines: List[str]) -> float:
+    for line in lines:
+        if "ensemble diversity" in line:
+            try:
+                return float(line.split()[-1])
+            except (ValueError, IndexError):
+                return 0.0
+    return 0.0
+
+
+def _fold_cmdline(seq: str, bp_probs: bool) -> "FoldResults":
+    _require_cli("RNAfold")
+    args = ["RNAfold", "-p", "--noLP", "--noPS", "-d2"]
+    if not bp_probs:
+        args.append("--noDP")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        result = subprocess.run(
+            args,
+            input=seq + "\n",
+            capture_output=True,
+            text=True,
+            cwd=tmpdir,
+            check=True,
+        )
+        lines = result.stdout.split("\n")
+        spl1 = lines[1].split()
+        structure = spl1[0]
+        energy = float(spl1[-1].strip("()"))
+        ensemble_diversity = _parse_ensemble_diversity(lines)
+
+        bp_probs_list: List[List[float]] = []
+        if bp_probs:
+            dot_ps = os.path.join(tmpdir, "dot.ps")
+            if os.path.exists(dot_ps):
+                with open(dot_ps) as f:
+                    for line in f:
+                        parts = line.strip().split()
+                        # RNAfold writes "i j sqrt(P_ij) ubox" for bp probs
+                        if len(parts) == 4 and parts[3] == "ubox":
+                            try:
+                                i = int(parts[0])
+                                j = int(parts[1])
+                                p = float(parts[2]) ** 2
+                            except ValueError:
+                                continue
+                            if p > 0.0:
+                                bp_probs_list.append([i, j, p])
+
+    return FoldResults(structure, energy, ensemble_diversity, bp_probs_list)
+
+
+def _cofold_cmdline(seq: str) -> "FoldResults":
+    _require_cli("RNAcofold")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        result = subprocess.run(
+            ["RNAcofold", "-p", "--noLP", "--noPS", "-d2"],
+            input=seq + "\n",
+            capture_output=True,
+            text=True,
+            cwd=tmpdir,
+            check=True,
+        )
+    lines = result.stdout.split("\n")
+    spl1 = lines[1].split()
+    structure = spl1[0]
+    energy = float(spl1[-1].strip("()"))
+    if "&" in seq and "&" not in structure:
+        seq1_len = seq.index("&")
+        structure = structure[:seq1_len] + "&" + structure[seq1_len:]
+    return FoldResults(structure, energy, _parse_ensemble_diversity(lines), [])
+
+
+def _score_cmdline(seq: str) -> float:
+    _require_cli("RNAfold")
+    result = subprocess.run(
+        ["RNAfold", "--noLP", "--noPS", "-d2"],
+        input=seq + "\n",
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    lines = result.stdout.split("\n")
+    return float(lines[1].split()[-1].strip("()"))
+
+
 # public functions #############################################################
 def fold(seq: str, bp_probs: bool = False) -> FoldResults:
     """
@@ -86,6 +194,9 @@ def fold(seq: str, bp_probs: bool = False) -> FoldResults:
     """
     if len(seq) == 0:
         raise ValueError("Must supply a sequence longer than 0")
+
+    if not _HAS_RNA:
+        return _fold_cmdline(seq, bp_probs)
 
     md = _get_model_details()
 
@@ -140,6 +251,9 @@ def cofold(seq: str) -> FoldResults:
     if "&" not in seq:
         raise ValueError("Cofold requires sequences separated by '&'")
 
+    if not _HAS_RNA:
+        return _cofold_cmdline(seq)
+
     seq1, seq2 = seq.split("&", 1)
 
     md = _get_model_details()
@@ -183,7 +297,7 @@ def inverse_fold(secstruct: str, constraint: str, n_sol: int = 100) -> InverseRe
     if shutil.which("RNAinverse") is None:
         raise RuntimeError("RNAinverse command-line tool not available in PATH")
 
-    md = _get_model_details()
+    md = _get_model_details() if _HAS_RNA else None
     seqs = []
     scores = []
 
@@ -214,8 +328,11 @@ def inverse_fold(secstruct: str, constraint: str, n_sol: int = 100) -> InverseRe
                     seqs.append(seq)
 
                     # Compute score by folding the sequence
-                    fc = RNA.fold_compound(seq, md)
-                    _, mfe = fc.mfe()
+                    if _HAS_RNA:
+                        fc = RNA.fold_compound(seq, md)
+                        _, mfe = fc.mfe()
+                    else:
+                        mfe = _score_cmdline(seq)
                     scores.append(mfe)
 
                     # Stop if we have enough solutions
